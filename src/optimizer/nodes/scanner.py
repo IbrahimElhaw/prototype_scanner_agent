@@ -67,7 +67,7 @@ def merge_and_rank(state: ScannerState) -> dict:
 
 class AnswerStructure(BaseModel):
     """Structured answer we ask the LLM for (kept small on purpose)."""
-    idea: str = Field(description="At most two sentences: a specific improvement, or 'No clear improvement'")
+    idea: str = Field(description="At most two sentences: the specific improvement, or why none applies")
     improvable: bool = Field(description="True if this function's runtime can likely be reduced without changing its results")
     confidence: Literal["low", "medium", "high"]
 
@@ -76,11 +76,11 @@ _SYSTEM_PROMPT = (
     "You are a Python performance reviewer. You receive one function with measured profiling data "
     "and static hints. The static hints are guesses and may be wrong; the measured time is the evidence. "
     "Decide whether the runtime of this function can likely be reduced WITHOUT changing its behavior "
-    "(same results, same ordering, same return types). "
+    "(same results, same ordering, same return types). Examples of possible reductions, not a limit: "
+    "a better data structure, a better algorithm, removing duplicated or useless work, "
+    "or using a built-in alternative. "
     "A function that takes only a tiny share of the total time is rarely worth optimizing. "
-    " Be concise. Do not rewrite the code. Set improvable "
-    "to true ONLY if you can name a specific change (for example a better algorithm or data structure) that"
-    " makes the function do less work. If you cannot, write 'No clear improvement' as the idea and set improvable to false."
+    "Be concise. Do not rewrite the code."
 )
 
 
