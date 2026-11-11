@@ -1,0 +1,1 @@
+"""Tiny order-analytics project used as ground truth for the optimizer agents."""
