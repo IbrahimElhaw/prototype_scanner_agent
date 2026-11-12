@@ -4,3 +4,4 @@
 .venv
 *scan_report.json
 *__pycache__
+notes.txt
