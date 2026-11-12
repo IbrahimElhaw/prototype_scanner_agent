@@ -1,4 +1,3 @@
-# src/optimizer/state.py
 import operator
 from typing import Annotated, TypedDict
 

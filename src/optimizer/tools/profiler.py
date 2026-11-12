@@ -1,4 +1,3 @@
-# src/optimizer/tools/profiler.py
 import pstats
 import subprocess
 import sys

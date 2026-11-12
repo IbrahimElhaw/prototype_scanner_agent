@@ -1,4 +1,3 @@
-# src/optimizer/main.py
 from optimizer.config import Config
 from optimizer.graph import build_graph
 from optimizer.llm import build_llm

@@ -1,4 +1,3 @@
-# src/optimizer/nodes/scanner.py
 import json
 from pathlib import Path
 

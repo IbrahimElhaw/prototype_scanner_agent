@@ -1,4 +1,3 @@
-# src/optimizer/nodes/merge.py
 from optimizer.state import Candidate, ProfileRow, ScannerState, StaticRow
 
 
