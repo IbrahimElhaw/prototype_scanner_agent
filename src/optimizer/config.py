@@ -12,7 +12,8 @@ class Config:
     workload_script: str = "benchmark.py"  # run from target_dir under cProfile
 
     # --- Scanner behavior ---
-    top_n: int = 5                         # how many functions the LLM gets to judge
+    target_count: int = 10      # stop once this many improvable functions are found
+    max_checks: int = 10      # budget: max number of functions the LLM may examine
 
     # --- LLM (swap the model here only) ---
     model_name: str = "qwen2.5-coder:3b"

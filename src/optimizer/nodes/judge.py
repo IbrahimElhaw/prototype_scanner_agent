@@ -10,7 +10,7 @@ from optimizer.tools.source import read_lines
 
 class AnswerStructure(BaseModel):
     """Structured answer we ask the LLM for (kept small on purpose)."""
-    idea: str = Field(description="At most two sentences: the specific improvement, or why none applies")
+    explanation: str = Field(description="At most two sentences: why do u think there can be improvement")
     improvable: bool = Field(description="True if this function's runtime can likely be reduced without changing its results")
     confidence: Literal["low", "medium", "high"]
 
@@ -56,10 +56,14 @@ def make_judge_node(llm: BaseChatModel):
     def judge_node(state: ScannerState) -> dict:
         config = state["config"]
         total_time = sum(p["tottime"] for p in state["profile_rows"]) or 1.0
+        examined: list[Candidate] = []
         judgments: list[Judgment] = []
         errors: list[str] = []
+        found = 0
 
-        for c in state["candidates"]:
+        # walk the time-ranked list until the target or the budget is reached
+        for c in state["candidates"][: config.max_checks]:
+            examined.append(c)
             source = read_lines(config.package_dir / c["file"], c["lineno"], c["end_lineno"])
             messages = [
                 SystemMessage(content=_SYSTEM_PROMPT),
@@ -69,8 +73,14 @@ def make_judge_node(llm: BaseChatModel):
             if answer is None:
                 errors.append(f"judge failed for {c['file']}:{c['name']}: {error}")
                 continue
-            judgments.append(Judgment(file=c["file"], name=c["name"], **answer.model_dump()))
 
-        return {"judgments": judgments, "errors": errors}
+            judgments.append(Judgment(file=c["file"], name=c["name"], **answer.model_dump()))
+            if answer.improvable:
+                found += 1
+                if found >= config.target_count:
+                    break
+
+        # "candidates" now holds only the functions that were actually examined
+        return {"candidates": examined, "judgments": judgments, "errors": errors}
 
     return judge_node

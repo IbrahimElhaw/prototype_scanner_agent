@@ -34,4 +34,4 @@ def merge_and_rank(state: ScannerState) -> dict:
     ranked = sorted(table.values(), key=lambda c: c["tottime"], reverse=True)
     for c in ranked:
         c["score"] = c["tottime"]                 # ranking is by measured time only
-    return {"candidates": ranked[: state["config"].top_n]}
+    return {"candidates": ranked}
