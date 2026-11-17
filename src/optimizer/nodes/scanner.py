@@ -8,10 +8,11 @@ from optimizer.tools.static_analysis import analyze_package
 
 def profile_node(state: ScannerState) -> dict:
     try:
-        return {"profile_rows": profile_workload(state["config"])}
-    except RuntimeError as exc:
+        rows, failures = profile_workload(state["config"])
+    except (RuntimeError, OSError, ValueError) as exc:
         return {"profile_rows": [], "errors": [f"profile failed: {exc}"]}
-
+    errors = [f"profile failed for {name}:\n{err}" for name, err in failures.items()]
+    return {"profile_rows": rows, "errors": errors}
 
 def static_node(state: ScannerState) -> dict:
     try:

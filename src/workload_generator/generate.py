@@ -2,12 +2,15 @@ import re
 from dotenv import load_dotenv
 load_dotenv(dotenv_path="../../.env")
 import ast
+import json
+import os
 
 from context import helper_catalog
 from validate import normalize, validate_builder
 
 MODEL = "deepseek-v4.1-flash"
-WORKLOAD_PATH = "..\\run\\workload.py"
+RUN_DIR = os.path.join("..", "run")
+SIZES = [1000, 2000, 4000]
 
 import os
 from ollama import Client
@@ -31,34 +34,31 @@ def _strip_fences(text: str) -> str:
     return match.group(1).strip() if match else text.strip()
 
 
-def generate_builder(llm: Client, func, classes, model: str) -> dict:
-    name = builder_name(func.qualified_name)
-    class_infos = referenced_classes(func, classes)
 
-    response = llm.chat(
-        model=model,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT.format(builder_name=name)},
-            {"role": "user", "content": build_user_prompt(func, class_infos, name)},
-        ],
-        options={"temperature": 0},
-    )
-    code = _strip_fences(response["message"]["content"])
+def write_run(builders: list[dict], skipped: list[tuple], run_dir: str) -> None:
+    """Write run_dir/workload.py (valid builders + registry) and run_dir/cases.json."""
+    os.makedirs(run_dir, exist_ok=True)
+    valid = [b for b in builders if not b["error"]]
 
-    imports = [f"from {c.module} import {c.name}" for c in class_infos]
-    return {"qualified_name": func.qualified_name, "builder_name": name,
-            "imports": imports, "code": code}
-
-
-def write_workload(builders: list[dict], path: str) -> None:
-    """Merge all builders into one workload.py. Imports are deduplicated and placed on top."""
-    imports = sorted({line for b in builders for line in b["imports"]})
+    imports = sorted({line for b in valid for line in b["imports"]})
     header = ["import random", *imports]
-    body = [b["code"] for b in builders]
-    os.makedirs("..\\run", exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        f.write("\n".join(header) + "\n\n\n" + "\n\n\n".join(body) + "\n")
+    body = [b["code"] for b in valid]
+    registry = ["SIZES = " + repr(SIZES), "", "BUILDERS = {"]
+    registry += [f'    "{b["qualified_name"]}": {b["builder_name"]},' for b in valid]
+    registry.append("}")
 
+    with open(os.path.join(run_dir, "workload.py"), "w", encoding="utf-8") as f:
+        f.write("\n".join(header) + "\n\n\n" + "\n\n\n".join(body) + "\n\n\n" + "\n".join(registry) + "\n")
+
+    cases = {b["qualified_name"]: {"status": "ok"} for b in valid}
+    for b in builders:
+        if b["error"]:
+            cases[b["qualified_name"]] = {"status": "skipped", "reason": f"invalid builder: {b['error']}"}
+    for func, reason in skipped:
+        cases[func.qualified_name] = {"status": "skipped", "reason": reason}
+
+    with open(os.path.join(run_dir, "cases.json"), "w", encoding="utf-8") as f:
+        json.dump(cases, f, indent=2)
 
 def _ask(llm: Client, system: str, user: str) -> str:
     """The only place that talks to the LLM. Change this function to change provider."""
@@ -114,23 +114,31 @@ def generate_builder(llm: Client, func: FunctionInfo, classes: dict[str, ClassIn
     return result
 
 
-if __name__ == "__main__":
+def main():
     import sys
     from extractor import extract_classes, extract_functions
     from filter import filter_functions
 
     root = sys.argv[1]
-    funcs, _ = filter_functions(extract_functions(root))
+    print("root =", root)
+    all_funcs = extract_functions(root)
+    print("extracted:", len(all_funcs))
+    funcs, skipped = filter_functions(all_funcs)
+    print("runnable:", len(funcs), "| skipped:", len(skipped))
+
     classes = extract_classes(root)
     llm = Client(
         host='https://ollama.com',
         headers={'Authorization': 'Bearer ' + os.environ['OLLAMA_API_KEY']},
     )
 
-    builders = [generate_builder(llm, f, classes, funcs) for f in funcs[:1]]
+    builders = [generate_builder(llm, f, classes, funcs) for f in funcs[:5]]
+    write_run(builders, skipped, RUN_DIR)
+    print(f"Wrote {RUN_DIR}/ with {sum(not b['error'] for b in builders)}/{len(builders)} builders")
+
     for b in builders:
         if b["error"]:
             print(f"  INVALID {b['builder_name']}: {b['error']}")
-    valid = [b for b in builders if not b["error"]]
-    write_workload(valid, WORKLOAD_PATH)
-    print(f"Wrote workload.py with {len(valid)}/{len(builders)} builders")
+
+if __name__ == "__main__":
+    main()

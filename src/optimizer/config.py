@@ -9,7 +9,7 @@ class Config:
     # --- Target project (the code we want to speed up) ---
     target_dir: Path = _PROJECT_ROOT / "target"
     package_name: str = "shop_analytics"   # sub-folder that the scanner is allowed to analyze
-    workload_script: str = "benchmark.py"  # run from target_dir under cProfile
+    workload_script: str = str(Path(__file__).resolve().parents[1] / "run" / "workload.py")
 
     # --- Scanner behavior ---
     target_count: int = 10      # stop once this many improvable functions are found
