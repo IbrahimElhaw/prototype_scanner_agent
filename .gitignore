@@ -5,3 +5,5 @@
 *scan_report.json
 *__pycache__
 notes.txt
+.env
+src/run/workload.py
