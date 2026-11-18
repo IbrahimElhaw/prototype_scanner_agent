@@ -4,8 +4,8 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
-from optimizer.state import Candidate, Judgment, ScannerState
-from optimizer.tools.source import read_lines
+from scanner.state import Candidate, Judgment, ScannerState
+from scanner.tools.source import read_lines
 
 
 class AnswerStructure(BaseModel):

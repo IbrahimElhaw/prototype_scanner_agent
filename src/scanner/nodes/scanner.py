@@ -1,9 +1,9 @@
 import json
 from pathlib import Path
 
-from optimizer.state import ScannerState
-from optimizer.tools.profiler import profile_workload
-from optimizer.tools.static_analysis import analyze_package
+from scanner.state import ScannerState
+from scanner.tools.profiler import profile_workload
+from scanner.tools.static_analysis import analyze_package
 
 
 def profile_node(state: ScannerState) -> dict:

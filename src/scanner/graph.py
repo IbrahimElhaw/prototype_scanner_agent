@@ -1,10 +1,10 @@
 from langchain_core.language_models import BaseChatModel
 from langgraph.graph import END, START, StateGraph
 
-from optimizer.nodes.judge import make_judge_node
-from optimizer.nodes.merge import merge_and_rank
-from optimizer.nodes.scanner import profile_node, report_node, static_node
-from optimizer.state import ScannerState
+from scanner.nodes.judge import make_judge_node
+from scanner.nodes.merge import merge_and_rank
+from scanner.nodes.scanner import profile_node, report_node, static_node
+from scanner.state import ScannerState
 
 
 def build_graph(llm: BaseChatModel):

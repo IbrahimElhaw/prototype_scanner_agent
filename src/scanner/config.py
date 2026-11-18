@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-# <project_root>/src/optimizer/config.py -> parents[2] == <project_root>
+# <project_root>/src/scanner/config.py -> parents[2] == <project_root>
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 @dataclass(frozen=True)

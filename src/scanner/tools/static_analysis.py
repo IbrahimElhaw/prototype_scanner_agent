@@ -2,8 +2,8 @@ import ast
 
 from radon.complexity import cc_visit
 
-from optimizer.config import Config
-from optimizer.state import StaticRow
+from scanner.config import Config
+from scanner.state import StaticRow
 
 _LOOP_NODES = (ast.For, ast.AsyncFor, ast.While)
 

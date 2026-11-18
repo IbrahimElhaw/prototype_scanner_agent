@@ -1,1 +1,1 @@
-"""Tiny order-analytics project used as ground truth for the optimizer agents."""
+"""Tiny order-analytics project used as ground truth for the scanner agents."""

@@ -5,8 +5,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-from optimizer.config import Config
-from optimizer.state import ProfileRow
+from scanner.config import Config
+from scanner.state import ProfileRow
 
 WORKER = Path(__file__).with_name("profile_worker.py")
 

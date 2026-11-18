@@ -1,7 +1,7 @@
 from langchain_core.language_models import BaseChatModel
 from langchain_ollama import ChatOllama
 
-from optimizer.config import Config
+from scanner.config import Config
 
 
 def build_llm(config: Config) -> BaseChatModel:

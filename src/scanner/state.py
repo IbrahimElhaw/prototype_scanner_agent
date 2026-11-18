@@ -1,7 +1,7 @@
 import operator
 from typing import Annotated, TypedDict
 
-from optimizer.config import Config
+from scanner.config import Config
 
 
 class ProfileRow(TypedDict):

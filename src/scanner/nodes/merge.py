@@ -1,4 +1,4 @@
-from optimizer.state import Candidate, ProfileRow, ScannerState, StaticRow
+from scanner.state import Candidate, ProfileRow, ScannerState, StaticRow
 
 
 def _find_owner(row: ProfileRow, static_rows: list[StaticRow]) -> StaticRow | None:

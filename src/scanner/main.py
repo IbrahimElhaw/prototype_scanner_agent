@@ -1,6 +1,6 @@
-from optimizer.config import Config
-from optimizer.graph import build_graph
-from optimizer.llm import build_llm
+from scanner.config import Config
+from scanner.graph import build_graph
+from scanner.llm import build_llm
 
 
 def main() -> None:
