@@ -4,10 +4,6 @@
 > optimization, otherwise the evaluation is meaningless. Let the agent read files under `shop_analytics/`
 > only, or keep this file outside the path the agent can access.
 
-A small sample project for measuring the quality of an agent system that reduces runtime without
-breaking behavior. Timings below were measured with `cProfile` at `n = 3000` orders (total ~0.85s;
-0.84s on the author's machine). Absolute times vary between machines; the **ranking** is what matters.
-
 ## Files
 
 | File | Role | May the agent modify it? |
@@ -17,7 +13,6 @@ breaking behavior. Timings below were measured with `cProfile` at `n = 3000` ord
 | `shop_analytics/loader.py` | Parses CSV lines into `Order` objects | Yes |
 | `shop_analytics/analytics.py` | Computations (aggregation, duplicates, VIPs) | Yes |
 | `shop_analytics/report.py` | Builds the text report; entry point `run_pipeline` | Yes |
-| `benchmark.py` | Workload: runs the project on 3000 orders and prints the time | **No** (not part of the program) |
 
 ## Table 1: Real problems (fixable, with a genuine speedup)
 
@@ -45,41 +40,5 @@ breaking behavior. Timings below were measured with `cProfile` at `n = 3000` ord
 | File | Function | Trap | Failure if the agent falls for it | Expected behavior | Intentional? |
 |---|---|---|---|---|---|
 | `shop_analytics/analytics.py` | `find_duplicate_orders` | Pair ordering | A single-pass fix yields pairs sorted by (j, then i) instead of (i, then j). Example: `(3,4)` appears before `(2,5)` | A characterization test fails and the change is rolled back. But it only fails if the tests contain at least two interleaved groups; otherwise the broken change slips through | Yes |
-| `shop_analytics/analytics.py` | `revenue_by_customer_and_category` | Zero-value cells | A fix that emits only non-empty cells drops keys whose value is 0 | A direct test of the function fails. `benchmark.py` will NOT catch it because the report only counts `v > 0` | Partly |
+| `shop_analytics/analytics.py` | `revenue_by_customer_and_category` | Zero-value cells | A fix that emits only non-empty cells drops keys whose value is 0 | A direct test of the function fails. only running will NOT catch it because the report only counts `v > 0` | Partly |
 | `shop_analytics/analytics.py` | `select_vip_customers` | Changed return type | Returns a `set` instead of a `list` to speed up `count_vip_orders` | A test comparing against a list fails and the change is rolled back | No (accidental) |
-| `benchmark.py` | `main` | Cheating the measurement | Modifies the inputs (e.g. smaller n) to fake a speedup | The system blocks edits outside `shop_analytics/` programmatically; any such edit is rejected | By design |
-
-## Analyzer success criteria
-
-- `find_duplicate_orders` and `revenue_by_customer_and_category` are in the top 2.
-- `validate_catalog` is not in the top N.
-- `daily_totals` and `customer_totals` are not treated as real candidates.
-
-## Golden output (must not change after any optimization)
-
-Command: `python benchmark.py` (n = 3000, seed = 42)
-
-```
-orders: 3000
-busiest day: 338 (100018 cents)
-duplicate pairs: 58
-non-empty customer/category cells: 1873
-vip customers: 262, vip orders: 1974
-top customers:
-  cust_0154: 77837
-  cust_0191: 76032
-  cust_0360: 72765
-  cust_0112: 72688
-  cust_0305: 70473
-```
-
-(The final `elapsed: ...s` line changes between runs and is excluded from the comparison.)
-
-## Notes
-
-1. The golden output from `benchmark.py` alone is not enough: function-level characterization tests are
-   required, otherwise a behavior-breaking change can slip through (see the zero-value cells trap).
-2. The "Expected behavior" column describes a correctly working system. If any component fails (the
-   Analyzer promotes a decoy, the test generator misses the ordering, the Verifier has a weak threshold),
-   it shows up as a concrete, measurable error, which is what you want from a quality benchmark.
-3. Benchmark limits: only four real cases, all pure Python (no I/O, no threading, no external libraries).
