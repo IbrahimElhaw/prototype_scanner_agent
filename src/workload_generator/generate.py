@@ -1,15 +1,18 @@
 import re
+from pathlib import Path
+
 from dotenv import load_dotenv
-load_dotenv(dotenv_path="../../.env")
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(PROJECT_ROOT / ".env")
+RUN_DIR = str(PROJECT_ROOT / "src" / "run")
 import ast
 import json
-import os
 
 from context import helper_catalog
 from validate import normalize, validate_builder
 
 MODEL = "deepseek-v4.1-flash"
-RUN_DIR = os.path.join("..", "run")
 SIZES = [1000, 2000, 4000]
 
 import os
@@ -66,16 +69,12 @@ def write_run(builders: list[dict], skipped: list[tuple], run_dir: str) -> None:
 
 def _ask(llm: Client, system_prompt: str, user_prompt: str) -> str:
     """The only place that talks to the LLM. """
-    # response = llm.chat(
-    #     model=MODEL,
-    #     messages=[{"role": "system", "content": system_prompt},
-    #               {"role": "user", "content": user_prompt}],
-    #     options={"temperature": 0},
-    # )
-
-    print(user_prompt)
-    exit()
-    response = {"message": {"content": ""}}
+    response = llm.chat(
+        model=MODEL,
+        messages=[{"role": "system", "content": system_prompt},
+                  {"role": "user", "content": user_prompt}],
+        options={"temperature": 0},
+    )
     return response["message"]["content"]
 
 
@@ -136,19 +135,24 @@ def main():
     print("runnable:", len(funcs), "| skipped:", len(skipped))
 
     classes = extract_classes(root)
-    llm = Client(
+
+    try:
+        llm = Client(
         host='https://ollama.com',
         headers={'Authorization': 'Bearer ' + os.environ['OLLAMA_API_KEY']},
-    )
+        )
+    except KeyError:
+        print("no API key provided")
+        exit()
 
     builders = [generate_builder(llm, f, classes, funcs) for f in funcs]
-    exit(0)
     write_run(builders, skipped, RUN_DIR)
     print(f"Wrote {RUN_DIR}\\ with {sum(not b['error'] for b in builders)}/{len(builders)} builders")
 
     for b in builders:
         if b["error"]:
             print(f"  INVALID {b['builder_name']}: {b['error']}")
+
 
 if __name__ == "__main__":
     main()

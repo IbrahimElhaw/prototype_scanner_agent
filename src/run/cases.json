@@ -1,7 +1,4 @@
 {
-  "benchmark:main": {
-    "status": "ok"
-  },
   "shop_analytics.analytics:daily_totals": {
     "status": "ok"
   },
