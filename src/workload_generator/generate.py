@@ -40,7 +40,11 @@ def write_run(builders: list[dict], skipped: list[tuple], run_dir: str) -> None:
     os.makedirs(run_dir, exist_ok=True)
     valid = [b for b in builders if not b["error"]]
 
-    imports = sorted({line for b in valid for line in b["imports"]})
+    imports = set()
+    for builder in valid:
+        for line in builder["imports"]:
+            imports.add(line)
+    imports = sorted(imports)
     header = ["import random", *imports]
     body = [b["code"] for b in valid]
     registry = ["SIZES = " + repr(SIZES), "", "BUILDERS = {"]
@@ -60,18 +64,22 @@ def write_run(builders: list[dict], skipped: list[tuple], run_dir: str) -> None:
     with open(os.path.join(run_dir, "cases.json"), "w", encoding="utf-8") as f:
         json.dump(cases, f, indent=2)
 
-def _ask(llm: Client, system: str, user: str) -> str:
-    """The only place that talks to the LLM. Change this function to change provider."""
-    response = llm.chat(
-        model=MODEL,
-        messages=[{"role": "system", "content": system},
-                  {"role": "user", "content": user}],
-        options={"temperature": 0},
-    )
+def _ask(llm: Client, system_prompt: str, user_prompt: str) -> str:
+    """The only place that talks to the LLM. """
+    # response = llm.chat(
+    #     model=MODEL,
+    #     messages=[{"role": "system", "content": system_prompt},
+    #               {"role": "user", "content": user_prompt}],
+    #     options={"temperature": 0},
+    # )
+
+    print(user_prompt)
+    exit()
+    response = {"message": {"content": ""}}
     return response["message"]["content"]
 
 
-def _short(func: FunctionInfo) -> str:
+def _remove_pkg_name(func: FunctionInfo) -> str:
     """'shop_analytics.generator:generate_csv_lines' -> 'generate_csv_lines'"""
     return func.qualified_name.split(":")[1]
 
@@ -94,21 +102,22 @@ def generate_builder(llm: Client, func: FunctionInfo, classes: dict[str, ClassIn
     result = {"qualified_name": func.qualified_name, "builder_name": name,
               "imports": [], "code": "", "error": None}
 
-    raw = _ask(llm, SYSTEM_PROMPT, build_user_prompt(func, class_infos, helper_infos, name))
+    user_prompt = build_user_prompt(func, class_infos, helper_infos, name)
+    raw_code = _ask(llm, SYSTEM_PROMPT, user_prompt)
     try:
-        code = normalize(_strip_fences(raw))
+        code = normalize(_strip_fences(raw_code))
     except SyntaxError as e:
         result["error"] = f"syntax error: {e}"
         return result
 
-    known = {c.name for c in class_infos} | {_short(h) for h in helper_infos}
-    result["error"] = validate_builder(code, name, _short(func).split(".")[-1], known)
+    known = {c.name for c in class_infos} | {_remove_pkg_name(h) for h in helper_infos}
+    result["error"] = validate_builder(code, name, _remove_pkg_name(func).split(".")[-1], known)
 
     # Import only what the builder actually uses; we write the imports, not the model
-    used = _used_names(code)
-    imports = [f"from {c.module} import {c.name}" for c in class_infos if c.name in used]
-    imports += [f"from {h.qualified_name.split(':')[0]} import {_short(h)}"
-                for h in helper_infos if _short(h) in used]
+    used_names = _used_names(code)
+    imports = [f"from {c.module} import {c.name}" for c in class_infos if c.name in used_names]
+    imports += [f"from {h.qualified_name.split(':')[0]} import {_remove_pkg_name(h)}"
+                for h in helper_infos if _remove_pkg_name(h) in used_names]
     result["imports"] = imports
     result["code"] = code
     return result
@@ -132,9 +141,10 @@ def main():
         headers={'Authorization': 'Bearer ' + os.environ['OLLAMA_API_KEY']},
     )
 
-    builders = [generate_builder(llm, f, classes, funcs) for f in funcs[:5]]
+    builders = [generate_builder(llm, f, classes, funcs) for f in funcs]
+    exit(0)
     write_run(builders, skipped, RUN_DIR)
-    print(f"Wrote {RUN_DIR}/ with {sum(not b['error'] for b in builders)}/{len(builders)} builders")
+    print(f"Wrote {RUN_DIR}\\ with {sum(not b['error'] for b in builders)}/{len(builders)} builders")
 
     for b in builders:
         if b["error"]:

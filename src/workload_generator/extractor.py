@@ -40,6 +40,7 @@ def _module_name(file: Path, root: Path) -> str:
 
 
 def _build_signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
+    # returns as example (orders: list[Order]) -> list[tuple[int, int]]
     sig = f"({ast.unparse(node.args)})"
     if node.returns is not None:
         sig += f" -> {ast.unparse(node.returns)}"
@@ -78,7 +79,8 @@ def extract_functions(project_root: str) -> list[FunctionInfo]:
             source = file.read_text(encoding="utf-8")
             tree = ast.parse(source)
         except (SyntaxError, UnicodeDecodeError):
-            continue  # can not be read
+            print(f"extract_functions in extractor skipped {file}, cannot be read")
+            continue
 
         _collect(tree.body, [], _module_name(file, root), file, source, result)
 
@@ -118,3 +120,5 @@ if __name__ == "__main__":
     print(f"Found {len(funcs)} functions")
     for f in funcs:
         print(f.qualified_name, f.signature)
+    classes = extract_classes(sys.argv[1])
+    print(classes)

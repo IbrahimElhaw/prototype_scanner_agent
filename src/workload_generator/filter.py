@@ -1,5 +1,6 @@
 import ast
 from dataclasses import dataclass
+from textwrap import dedent
 
 from extractor import FunctionInfo
 
@@ -51,13 +52,11 @@ def _find_side_effect(source: str) -> str | None:
     return None
 
 def check_function(func: FunctionInfo) -> FilterResult:
-    if func.is_async:
-        return FilterResult(False, "async function")
     if func.is_method:
         return FilterResult(False, "method (classes not supported yet)")
 
     try:
-        reason = _find_side_effect(_dedent(func.source))
+        reason = _find_side_effect(dedent(func.source))
     except SyntaxError:
         return FilterResult(False, "source could not be parsed")
 
@@ -65,10 +64,6 @@ def check_function(func: FunctionInfo) -> FilterResult:
         return FilterResult(False, f"side effect: {reason}")
     return FilterResult(True)
 
-
-def _dedent(source: str) -> str:
-    import textwrap
-    return textwrap.dedent(source)
 
 
 def filter_functions(funcs: list[FunctionInfo]) -> tuple[list[FunctionInfo], list[tuple[FunctionInfo, str]]]:
